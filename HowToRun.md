@@ -33,35 +33,146 @@ Total time: about 10 minutes, most of it waiting for `npm install`.
 |---|---|---|
 | **Node.js** | 18.18 or newer (20 LTS recommended) | `node --version` |
 | **npm** | 9 or newer | `npm --version` |
-| **PostgreSQL** | 14 or newer (16 recommended) | `psql --version` |
-| **pgvector** | 0.5 or newer | see step 2.4 |
+| **PostgreSQL** | 14 or newer (16+ recommended) | `psql --version` |
+| **pgvector** | 0.5 or newer | see section 2 |
 | **Git** | any recent | `git --version` |
 
 > **pgvector is mandatory.** It provides the `VECTOR` type and the HNSW
 > index that the semantic-search half of the project is built on. Without
 > it, `npm run db:setup` stops at the first file with
 > `ERROR: type "vector" does not exist`.
+>
+> **The quickest way to get it is not to install anything** — see section
+> 2.0 for a free hosted PostgreSQL that already has pgvector built in.
 
 ---
 
 ## 2. Install PostgreSQL and pgvector
 
-Pick your platform.
+### 2.0 The fast route — a free cloud database (no install at all)
 
-### 2.1 Windows
+**If you want to be running in five minutes, use this.** pgvector is
+already installed on every major hosted PostgreSQL service, so there is
+nothing to compile.
 
-1. Download the installer from
-   <https://www.postgresql.org/download/windows/> and run it.
-   Keep the default port **5432** and remember the password you set for the
-   `postgres` user.
-2. During installation, let **Stack Builder** run at the end.
-3. The simplest way to get pgvector on Windows is a prebuilt binary:
-   - Go to <https://github.com/pgvector/pgvector/releases>
-   - Download the ZIP matching your PostgreSQL major version
-   - Copy `vector.dll` into `C:\Program Files\PostgreSQL\16\lib\`
-   - Copy `vector.control` and `vector--*.sql` into
-     `C:\Program Files\PostgreSQL\16\share\extension\`
-4. Restart the PostgreSQL service (Services → `postgresql-x64-16` → Restart).
+1. Sign up at <https://neon.com> (free tier, no card). Supabase, Render and
+   Aiven all work the same way.
+2. Create a project. You get a connection string that looks like
+   `postgresql://user:pass@ep-xxx.aws.neon.tech/neondb?sslmode=require`
+3. In their SQL editor, run:
+
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS vector;
+   CREATE EXTENSION IF NOT EXISTS pgcrypto;
+   ```
+
+4. Put the connection string in `.env.local` as a single line — it
+   replaces all the `PG*` variables:
+
+   ```ini
+   DATABASE_URL=postgresql://user:pass@ep-xxx.aws.neon.tech/neondb?sslmode=require
+   SESSION_SECRET=paste_a_long_random_string_here
+   ```
+
+5. Skip to [section 6](#6-build-the-schema).
+
+**This is fully supported.** The whole project has been verified against a
+non-superuser account of the kind a managed service gives you: all 19
+tables, the roles, the row-level security policies and all 51 database
+tests pass unchanged.
+
+> **One caveat for your demo.** A cloud database needs working internet in
+> the exam room. If that is a risk, use the cloud now to make progress and
+> install locally later — the project runs identically against both, and
+> switching is a one-line change in `.env.local`.
+
+---
+
+### 2.1 Windows (local install)
+
+**There are no official prebuilt Windows binaries for pgvector.** The
+project ships source only, so on Windows it has to be compiled. It takes
+about ten minutes and is mechanical, but the exact prompt you use matters —
+see the warnings below.
+
+#### Step 1 — Install PostgreSQL
+
+Download the installer from <https://www.postgresql.org/download/windows/>
+and run it. Keep the default port **5432** and remember the password you
+set for the `postgres` user. Any version from 14 onwards works; these
+instructions assume **18** — change the path if yours differs.
+
+#### Step 2 — Install the C++ compiler
+
+pgvector needs a C compiler. Download **Build Tools for Visual Studio 2022**
+from <https://visualstudio.microsoft.com/downloads/> (scroll to *Tools for
+Visual Studio* → *Build Tools for Visual Studio*). This is the free,
+compiler-only package — you do not need the full Visual Studio IDE.
+
+In the installer, tick the **"Desktop development with C++"** workload and
+install. It is roughly 2–3 GB.
+
+#### Step 3 — Build and install pgvector
+
+> **Three things go wrong here, so read before typing.**
+>
+> 1. **Use the right prompt.** Open **"x64 Native Tools Command Prompt for
+>    VS 2022"** from the Start menu — *not* PowerShell and *not* plain
+>    `cmd`. Only this prompt has `nmake` on its PATH. Use the **x64**
+>    version; the x86 one produces a 32-bit DLL that 64-bit PostgreSQL
+>    cannot load.
+> 2. **Run it as Administrator.** Right-click → *Run as administrator*. The
+>    install step writes into `C:\Program Files\`, which fails otherwise.
+> 3. **Mind the quote placement.** It is `set "PGROOT=C:\...\18"`, with the
+>    quotes around the *whole assignment*. Writing
+>    `set PGROOT="C:\...\18"` puts literal quote characters *inside* the
+>    value and causes a "cannot find file" error during the build.
+
+In that Administrator x64 Native Tools prompt:
+
+```bat
+set "PGROOT=C:\Program Files\PostgreSQL\18"
+cd %TEMP%
+git clone --branch v0.8.7 https://github.com/pgvector/pgvector.git
+cd pgvector
+nmake /F Makefile.win
+nmake /F Makefile.win install
+```
+
+Both `nmake` commands should end with no errors. The second copies
+`vector.dll` into your PostgreSQL `lib\` folder and the extension's SQL
+files into `share\extension\`.
+
+> **Do not** add `shared_preload_libraries = 'vector'` to
+> `postgresql.conf`. Some blog posts suggest it; pgvector does not need it,
+> and a typo there stops PostgreSQL from starting at all.
+
+#### Step 4 — Confirm it worked
+
+```bat
+psql -U postgres -c "SELECT * FROM pg_available_extensions WHERE name='vector';"
+```
+
+One row naming `vector` means success. An empty result means the build
+output did not land in the right PostgreSQL installation — check that
+`PGROOT` pointed at the same version you are connecting to.
+
+#### If you cannot install Visual Studio
+
+Use Docker instead and skip the compiler entirely. Install Docker Desktop,
+then:
+
+```bat
+docker run --name pokerdb -e POSTGRES_PASSWORD=postgres -p 5433:5432 -d pgvector/pgvector:pg17
+```
+
+This gives you PostgreSQL with pgvector already inside it, on port **5433**
+so it does not clash with any local install. Set `PGPORT=5433` and
+`PGPASSWORD=postgres` in `.env.local`, then create the database with:
+
+```bat
+docker exec -it pokerdb psql -U postgres -c "CREATE DATABASE pokerdb;"
+```
 
 ### 2.2 macOS
 
@@ -91,8 +202,8 @@ sudo systemctl enable postgresql
 If your distribution has no `postgresql-16-pgvector` package, build it:
 
 ```bash
-sudo apt install -y build-essential postgresql-server-dev-16 git
-git clone --branch v0.7.4 https://github.com/pgvector/pgvector.git
+sudo apt install -y build-essential postgresql-server-dev-all git
+git clone --branch v0.8.7 https://github.com/pgvector/pgvector.git
 cd pgvector && make && sudo make install
 ```
 
@@ -482,7 +593,7 @@ brew services start postgresql@16
 # Linux
 sudo systemctl start postgresql
 # Windows
-# Services → postgresql-x64-16 → Start
+# Services → postgresql-x64-<your version> → Start
 ```
 
 ### `SESSION_SECRET must be set to a random string of at least 16 characters`

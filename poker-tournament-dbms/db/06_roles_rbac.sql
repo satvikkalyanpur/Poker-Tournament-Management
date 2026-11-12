@@ -50,7 +50,34 @@ BEGIN
     END IF;
 END $$;
 
-GRANT poker_admin, poker_director, poker_player TO poker_app;
+-- On a MANAGED PostgreSQL service (Neon, Supabase, RDS) the account you
+-- connect with is not a superuser. It may grant only roles it created or
+-- holds ADMIN OPTION on, so this GRANT can fail on a shared cluster where
+-- the poker_* roles already exist and belong to somebody else. That is not
+-- fatal — the roles and their privileges are still correct — so the
+-- failure is reported and setup continues.
+DO $$
+BEGIN
+    GRANT poker_admin, poker_director, poker_player TO poker_app;
+EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE 'Could not grant the poker_* roles to poker_app (%). '
+                 'This happens on managed PostgreSQL when the roles already '
+                 'exist and are owned by another account. Everything else is '
+                 'unaffected.', SQLERRM;
+END $$;
+
+-- The account running this script must also be a MEMBER of the three roles,
+-- otherwise it cannot issue SET ROLE and the per-request role escalation in
+-- lib/db.js fails. A superuser can always SET ROLE, so this is a no-op on a
+-- local install; it matters on a managed service where the owning account is
+-- an ordinary (non-superuser) role.
+DO $$
+BEGIN
+    EXECUTE format('GRANT poker_admin, poker_director, poker_player TO %I',
+                   CURRENT_USER);
+EXCEPTION WHEN insufficient_privilege OR duplicate_object THEN
+    RAISE NOTICE 'Could not grant the poker_* roles to %: %', CURRENT_USER, SQLERRM;
+END $$;
 
 -- ---------------------------------------------------------------------
 -- 3. Baseline: revoke the permissive PUBLIC defaults
@@ -157,11 +184,18 @@ CREATE POLICY rls_registration_player ON registration
 -- demonstrably active even for the owning role during the demo
 ALTER TABLE registration FORCE ROW LEVEL SECURITY;
 
--- ...but the owner still needs to work, so give it an explicit policy
+-- ...but the owner still needs to work, so give it an explicit policy.
+-- The owning role is NOT always called "postgres": on Neon it is
+-- neondb_owner, on Supabase it is postgres, on RDS it is whatever you
+-- chose at creation. Naming it literally would make this file fail on a
+-- managed service, so the current user is substituted dynamically.
 DROP POLICY IF EXISTS rls_registration_owner ON registration;
-CREATE POLICY rls_registration_owner ON registration
-    FOR ALL TO postgres
-    USING (TRUE) WITH CHECK (TRUE);
+DO $$
+BEGIN
+    EXECUTE format(
+        'CREATE POLICY rls_registration_owner ON registration '
+        'FOR ALL TO %I USING (TRUE) WITH CHECK (TRUE)', CURRENT_USER);
+END $$;
 
 -- ---------------------------------------------------------------------
 -- 9. Defaults for objects created later

@@ -113,16 +113,28 @@ function bar(label, done, total) {
 // ---------------------------------------------------------------------
 async function clearGenerated() {
   // TRUNCATE ... CASCADE resets everything that hangs off these tables.
-  // session_replication_role disables triggers for the duration so the
-  // audit log does not fill with thousands of delete records.
-  await q("SET session_replication_role = 'replica'");
+  //
+  // TRUNCATE does not fire row-level triggers, so no trigger needs
+  // disabling here. Setting session_replication_role would also require
+  // superuser, which a managed PostgreSQL service (Neon, Supabase, RDS)
+  // does not grant — so it is attempted only as a belt-and-braces measure
+  // and its failure is ignored.
+  let replicaMode = false;
+  try {
+    await q("SET session_replication_role = 'replica'");
+    replicaMode = true;
+  } catch {
+    /* not a superuser — fine, TRUNCATE fires no row triggers anyway */
+  }
+
   await q(`TRUNCATE hand_summary, hand_action, hand_player, hand,
                     chip_count_log, seat_assignment, poker_table,
                     tournament_transaction, registration, payout_tier,
                     blind_level, tournament, staff, player_phone, player,
                     app_user, audit_log
            RESTART IDENTITY CASCADE`);
-  await q("SET session_replication_role = 'origin'");
+
+  if (replicaMode) await q("SET session_replication_role = 'origin'");
 }
 
 // ---------------------------------------------------------------------

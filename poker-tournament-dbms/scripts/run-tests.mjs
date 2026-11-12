@@ -245,12 +245,18 @@ async function main() {
         `SELECT sa.table_id, sa.seat_no, pt.tournament_id
            FROM seat_assignment sa JOIN poker_table pt ON pt.table_id = sa.table_id
           WHERE sa.vacated_at IS NULL AND pt.status = 'OPEN' LIMIT 1`);
+      if (!rows.length) return 'skipped: no open table with a live seat';
+      // Any OTHER entry in the same tournament will do. Whichever of the two
+      // partial unique indexes fires first — one occupant per seat, or one
+      // live seat per entry — the SQLSTATE is 23505 either way.
       const { rows: other } = await c.query(
-        `SELECT registration_id FROM registration
-          WHERE tournament_id = $1
-            AND registration_id NOT IN (
-                SELECT registration_id FROM seat_assignment WHERE vacated_at IS NULL)
+        `SELECT r.registration_id FROM registration r
+           LEFT JOIN seat_assignment sa
+                  ON sa.registration_id = r.registration_id AND sa.vacated_at IS NULL
+          WHERE r.tournament_id = $1
+          ORDER BY (sa.seat_id IS NULL) DESC
           LIMIT 1`, [rows[0].tournament_id]);
+      if (!other.length) return 'skipped: tournament has no other entry';
       return c.query(
         `INSERT INTO seat_assignment (table_id, registration_id, seat_no) VALUES ($1,$2,$3)`,
         [rows[0].table_id, other[0].registration_id, rows[0].seat_no]);
