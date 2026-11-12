@@ -116,11 +116,27 @@ export const sessionCookie = {
   options: {
     httpOnly: true,                                   // not readable from JS
     sameSite: 'lax',                                  // basic CSRF defence
-    secure: process.env.NODE_ENV === 'production',
+    secure: false,                                    // overridden per request
     path: '/',
     maxAge: SESSION_TTL_MS / 1000,
   },
 };
+
+/**
+ * Cookie options for a specific request.
+ *
+ * The `Secure` flag must track the actual protocol, not NODE_ENV. A
+ * production build served over plain http://localhost — which is exactly
+ * what `npm run build && npm start` gives you — would otherwise emit a
+ * Secure cookie that the browser may refuse to store, leaving the user
+ * stuck on "Not signed in." with no visible cause.
+ */
+export function cookieOptionsFor(request) {
+  const forwarded = request?.headers?.get?.('x-forwarded-proto');
+  const isHttps =
+    forwarded === 'https' || request?.nextUrl?.protocol === 'https:';
+  return { ...sessionCookie.options, secure: Boolean(isHttps) };
+}
 
 /**
  * Look a user up by e-mail and verify their password.

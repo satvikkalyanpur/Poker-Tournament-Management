@@ -75,6 +75,17 @@ in [HowToRun.md](HowToRun.md).**
 
 ---
 
+## Screenshots
+
+| Dashboard | Semantic search |
+|---|---|
+| ![Dashboard](docs/screenshots/02-dashboard.png) | ![Search](docs/screenshots/07-semantic-search.png) |
+
+| Tournament detail | Admin console |
+|---|---|
+| ![Tournament](docs/screenshots/04-tournament-detail.png) | ![Admin](docs/screenshots/09-admin-rbac.png) |
+
+---
 
 ## The semantic search, in one example
 
@@ -174,4 +185,9 @@ goes untested.
 
 ---
 
+## Licence and originality
 
+Coursework submission. Designed and implemented by the team named in
+[INDIVIDUAL_CONTRIBUTIONS.md](docs/INDIVIDUAL_CONTRIBUTIONS.md). No existing
+poker-management project, tutorial or repository was copied; references
+consulted for technique are credited in that document.

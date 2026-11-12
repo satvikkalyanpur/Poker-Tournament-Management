@@ -2,7 +2,7 @@
  * POST /api/auth/login — authenticate and issue a session cookie.
  */
 import { NextResponse } from 'next/server';
-import { authenticate, createSessionToken, sessionCookie } from '@/lib/auth';
+import { authenticate, createSessionToken, sessionCookie, cookieOptionsFor } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +34,6 @@ export async function POST(req) {
       screenName: user.screen_name,
     },
   });
-  res.cookies.set(sessionCookie.name, createSessionToken(user), sessionCookie.options);
+  res.cookies.set(sessionCookie.name, createSessionToken(user), cookieOptionsFor(req));
   return res;
 }
