@@ -185,9 +185,4 @@ goes untested.
 
 ---
 
-## Licence and originality
 
-Coursework submission. Designed and implemented by the team named in
-[INDIVIDUAL_CONTRIBUTIONS.md](docs/INDIVIDUAL_CONTRIBUTIONS.md). No existing
-poker-management project, tutorial or repository was copied; references
-consulted for technique are credited in that document.
