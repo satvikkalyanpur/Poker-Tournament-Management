@@ -79,11 +79,11 @@ in [HowToRun.md](HowToRun.md).**
 
 | Dashboard | Semantic search |
 |---|---|
-| ![Dashboard](poker-tournament-dbms/docs/screenshots/02-dashboard.png) | ![Search](docs/screenshots/07-semantic-search.png) |
+| ![Dashboard](poker-tournament-dbms/docs/screenshots/02-dashboard.png) | ![Search](poker-tournament-dbms/docs/screenshots/07-semantic-search.png) |
 
 | Tournament detail | Admin console |
 |---|---|
-| ![Tournament](docs/screenshots/04-tournament-detail.png) | ![Admin](docs/screenshots/09-admin-rbac.png) |
+| ![Tournament](poker-tournament-dbms/docs/screenshots/04-tournament-detail.png) | ![Admin](poker-tournament-dbms/docs/screenshots/09-admin-rbac.png) |
 
 ---
 
