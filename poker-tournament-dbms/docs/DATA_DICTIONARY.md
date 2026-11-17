@@ -1,4 +1,4 @@
-# Data dictionary
+# Data dictionary 
 
 > Generated directly from the live PostgreSQL schema by
 > `node scripts/gen-data-dictionary.mjs`, so it cannot drift from
