@@ -79,7 +79,7 @@ in [HowToRun.md](HowToRun.md).**
 
 | Dashboard | Semantic search |
 |---|---|
-| ![Dashboard](docs/screenshots/02-dashboard.png) | ![Search](docs/screenshots/07-semantic-search.png) |
+| ![Dashboard](poker-tournament-dbms/docs/screenshots/02-dashboard.png) | ![Search](docs/screenshots/07-semantic-search.png) |
 
 | Tournament detail | Admin console |
 |---|---|
