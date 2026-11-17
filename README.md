@@ -130,9 +130,7 @@ including `psql`. See [SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md).
 | [VECTOR_DATA_MODEL.md](docs/VECTOR_DATA_MODEL.md) | Embeddings, index parameters, similarity metric, retrieval |
 | [SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md) | Layers, request lifecycle, role strategy |
 | [TEST_CASES.md](docs/TEST_CASES.md) | 51 database cases + 57 API assertions, with real results |
-| [INDIVIDUAL_CONTRIBUTIONS.md](docs/INDIVIDUAL_CONTRIBUTIONS.md) | Team split and viva preparation |
-| [GITHUB_SETUP.md](docs/GITHUB_SETUP.md) | Publishing the repository |
-| [er-diagram.drawio](docs/er-diagram.drawio) | Editable ER diagram (open at app.diagrams.net) |
+| [er-diagram.pdf](docs/er-diagram.pdf) | Editable ER diagram (open at app.diagrams.net) |
 
 ---
 
